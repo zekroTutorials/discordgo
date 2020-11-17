@@ -8,6 +8,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/zekroTutorials/discordgo/internal/config"
+	"github.com/zekroTutorials/discordgo/internal/events"
 )
 
 func main() {
@@ -23,6 +24,12 @@ func main() {
 		panic(err)
 	}
 
+	s.Identify.Intents = discordgo.MakeIntent(
+		discordgo.IntentsGuildMembers |
+			discordgo.IntentsGuildMessages)
+
+	registerEvents(s)
+
 	if err = s.Open(); err != nil {
 		panic(err)
 	}
@@ -34,4 +41,13 @@ func main() {
 
 	// Cleanly close down the Discord session.
 	s.Close()
+}
+
+func registerEvents(s *discordgo.Session) {
+	joinLeaveHandler := events.NewJoinLeaveHandler()
+	s.AddHandler(joinLeaveHandler.HandlerJoin)
+	s.AddHandler(joinLeaveHandler.HandlerLeave)
+
+	s.AddHandler(events.NewReadyHandler().Handler)
+	s.AddHandler(events.NewMessageHandler().Handler)
 }
