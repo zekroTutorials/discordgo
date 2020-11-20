@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/zekroTutorials/discordgo/internal/commands"
 	"github.com/zekroTutorials/discordgo/internal/config"
 	"github.com/zekroTutorials/discordgo/internal/events"
 )
@@ -29,6 +30,7 @@ func main() {
 			discordgo.IntentsGuildMessages)
 
 	registerEvents(s)
+	registerCommands(s, cfg)
 
 	if err = s.Open(); err != nil {
 		panic(err)
@@ -50,4 +52,17 @@ func registerEvents(s *discordgo.Session) {
 
 	s.AddHandler(events.NewReadyHandler().Handler)
 	s.AddHandler(events.NewMessageHandler().Handler)
+}
+
+func registerCommands(s *discordgo.Session, cfg *config.Config) {
+	cmdHandler := commands.NewCommandHandler(cfg.Prefix)
+	cmdHandler.OnError = func(err error, ctx *commands.Context) {
+		ctx.Session.ChannelMessageSend(ctx.Message.ChannelID,
+			fmt.Sprintf("Command Execution failed: %s", err.Error()))
+	}
+
+	cmdHandler.RegisterCommand(&commands.CmdPing{})
+	cmdHandler.RegisterMiddleware(&commands.MwPermissions{})
+
+	s.AddHandler(cmdHandler.HandleMessage)
 }
